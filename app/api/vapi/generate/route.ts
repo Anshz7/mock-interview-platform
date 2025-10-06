@@ -33,11 +33,13 @@ export async function POST(request: Request){
         role, type, level, 
         techstack: techstack.split(','),
         questions: JSON.parse(questions),
-        userId: userid,
+        userId: userid, // Make sure userid is not empty
         finalized: true,
         coverImage: getRandomInterviewCover(),
-        createdId: new Date().toISOString()
+        createdAt: new Date().toISOString()
     }
+    
+    console.log("Saving interview with userId:", userid);
 
     await db.collection("interviews").add(interview);
 
