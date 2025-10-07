@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react'
 import { vapi } from '@/lib/vapi.sdk';
+import { toast } from 'sonner';
 
 enum CallStatus {
   INACTIVE = "INACTIVE",
@@ -19,11 +20,19 @@ interface SavedMessage{
 }
 
 const Agent = ({ userName, userId, type }:AgentProps) => {
-  console.log("Agent userId:", userId);
+  console.log('userid: ',userId);
   const router = useRouter();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [callStatus, setCallStatus] =  useState<CallStatus>(CallStatus.INACTIVE);
   const [messages, setMessages] = useState<SavedMessage[]>([]);
+
+  useEffect(() => {
+    if (!userId) {
+      console.error('No userId provided');
+      router.push('/sign-in');
+      return;
+    }
+  }, [userId]);
 
   useEffect(() =>{
     const onCallStart = () => setCallStatus(CallStatus.ACTIVE);
@@ -65,14 +74,24 @@ const Agent = ({ userName, userId, type }:AgentProps) => {
   },[messages, callStatus, type, userId])
 
   const handleCall = async() => {
+    if (!userId) {
+      toast.error('User ID is missing. Please sign in again.');
+      return;
+    }
+    
     setCallStatus(CallStatus.CONNECTING);
 
-    await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
-      variableValues: {
-        username: userName,
-        userid: userId,
-      }
-    })
+    try {
+      await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
+        variableValues: {
+          username: userName,
+          userid: userId, // Make sure this exact variable name matches what your API expects
+        }
+      });
+    } catch (error) {
+      console.error('Error starting call:', error);
+      setCallStatus(CallStatus.INACTIVE);
+    }
   }
 
   const handleDisconnect = async() => {
